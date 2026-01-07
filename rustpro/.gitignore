@@ -53,3 +53,26 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+########################################
+# Rust / Cargo
+########################################
+# Build artifacts and compiled binaries
+target/
+**/target/
+debug/
+release/
+
+# Cargo intermediate outputs
+*.rlib
+*.rmeta
+
+# rustfmt backup files
+**/*.rs.bk
+
+# macOS junk
+.DS_Store
+
+# Editor settings
+.vscode/
+.idea/
