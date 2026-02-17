@@ -1,38 +1,124 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Home</title>
 </head>
+
 <body>
 	<h1>Welcome to Home - Real Time Chat</h1>
 	<div style="display: flex; gap: 2rem;">
+		<p><a href="https://github.com">Go to Github</a></p>
 		<!-- Chat Window -->
 		<div style="flex: 2; border: 1px solid #ccc; padding: 1rem; border-radius: 8px; min-width: 300px;">
 			<h2>Chat</h2>
-			<div id="chat-messages" style="height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 1rem; padding: 0.5rem; border-radius: 4px;"></div>
-			<form id="chat-form" style="display: flex; gap: 0.5rem;">
-				<input type="text" id="chat-input" placeholder="Type a message..." style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc;">
-				<button type="submit">Send</button>
+			<div id="chat-messages"
+				style="height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 1rem; padding: 0.5rem; border-radius: 4px;">
+			</div>
+			<form id="chat-form" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+				<input type="text" id="username-input" placeholder="Enter your username"
+					style="width: 140px; padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc;">
+				<input type="text" id="chat-input" placeholder="Type a message..."
+					style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc;">
+				<button type="submit" id="sendMessage">Send</button>
 			</form>
 		</div>
+		<input type="hidden" name="action" id="action">
 		<!-- Online Users Window -->
-		<div style="flex: 1; border: 1px solid #ccc; padding: 1rem; border-radius: 8px; min-width: 150px; background: #f4f8ff;">
+		<div
+			style="flex: 1; border: 1px solid #ccc; padding: 1rem; border-radius: 8px; min-width: 150px; background: #f4f8ff;">
 			<h2>Who's Online</h2>
 			<ul id="online-users" style="list-style: none; padding: 0; margin: 0;"></ul>
 		</div>
 	</div>
 </body>
 <script>
-let socket = null;
-document.addEventListener("DOMContentLoaded", function(){
-	socket = new WebSocket("ws://127.0.0.1:8080/ws");
-	socket.onopen = () => {
-		console.log("successfully connected");
-	};
-});
+	let socket = null;
+	let op = document.getElementById("chat-message");
+
+	document.addEventListener("DOMContentLoaded", function () {
+		// Initialize fields
+		const userField = document.getElementById("username-input");
+		const messageField = document.getElementById("chat-input");
+
+		window.onbeforeunload = function () {
+			if (socket) {
+				let jsonData = {};
+				jsonData["action"] = "left";
+				socket.send(JSON.stringify(jsonData));
+			}
+		}
+
+		socket = new WebSocket("ws://127.0.0.1:8080/ws");
+		socket.onopen = () => {
+			console.log("successfully connected");
+		}
+		socket.onclose = () => {
+			console.log("connnection closed");
+		}
+		socket.onerror = error => {
+			console.log("there is eroor");
+		}
+		socket.onmessage = msg => {
+			console.log(msg);
+			let j = JSON.parse(msg.data);
+			console.log("Action is", j.action);
+			switch (j.action) {
+				case "list_users":
+					// Update the online users list
+					const userList = document.getElementById("online-users");
+					userList.innerHTML = ""; // clear current list
+					if (Array.isArray(j.connected_users)) {
+						j.connected_users.forEach(function (user) {
+							const li = document.createElement("li");
+							li.textContent = user;
+							userList.appendChild(li);
+						});
+					}
+					break;
+				case "broadcast":
+					op.innerHTML = op.innerHTML + data.message + "<br>";
+					break;
+				default:
+					break;
+			}
+		}
+
+		userField.addEventListener("change", function () {
+			let jsonData = {};
+			jsonData["action"] = "username";
+			jsonData["username"] = this.value;
+			socket.send(JSON.stringify(jsonData));
+		});
+
+		messageField.addEventListener("keydown", function (event) {
+			if (event.code === "Enter") {
+				if (!socket) {
+					console.log("no connection");
+					return false;
+				}
+				if ((userField.value === "") || (messageField.value === "")) {
+					alert("fill out user and message");
+					return false;
+				} else {
+					sendMessage();
+				}
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		});
+	});
+
+	function sendMessage() {
+		let jsonData = {};
+		jsonData["action"] = "broadcast";
+		jsonData["username"] = document.getElementById("username-input").value;
+		jsonData["message"] = document.getElementById("chat-input").value;
+		socket.send(JSON.stringify(jsonData));
+		document.getElementById("chat-input").value = "";
+	}
 </script>
+
 </html>
-!
